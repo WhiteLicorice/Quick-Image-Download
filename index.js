@@ -20,7 +20,7 @@
 	// Periodically check for new images and attach event listeners every 5 seconds
     setInterval(() => {
         checkAndAttachLoadListeners();
-    }, 5000);
+    }, 1000);
 
     async function checkAndAttachLoadListeners() {
         // Select background image elements that don't have the "has-download-button" class
@@ -49,7 +49,8 @@
 					// Attach load event listener to wait for the image to load
 					element.addEventListener('load', () => {
 						appendDownloadButtonToImage(element);
-					}, { once: true });
+						element.removeEventListener('load', this); // Explicit removal
+					 });
 				} else {
 					// Image is already loaded, append the button immediately
 					appendDownloadButtonToImage(element);
@@ -71,6 +72,7 @@
                 element: element.offsetParent,
                 url: element.src,
                 fileName: getFileName(element.src)
+				
             });
         }
     }
