@@ -1,14 +1,14 @@
 // ==UserScript==
-// @name			Image Downloader
+// @name			Quick Image Downloader
 // @namespace		https://openuserjs.org/users/mikhailsdv
 // @version			0.1
-// @description		Shows download button on every image on the page by pressing Ctrl + Q
-// @author			Misha Saidov
+// @description		Shows download button on every image on the page automatically
+// @author			Misha Saidov, Rene Andre Bedonia Jocsing
 // @license			MIT
 // @match			https://*/*
 // @match			http://*/*
 // @icon			https://i.ibb.co/XxcFQVC/logo.png
-// @author			Misha Saidov
+// @author			Misha Saidov, Rene Andre Bedonia Jocsing
 // @grant			none
 // ==/UserScript==
 
@@ -17,34 +17,51 @@
 
 	window.focus();
 
-	const listenCombination = ({combination, callback, once, element = window}) => {
-		let combinationMemory = [];
-		let emptyTimeout;
-		let count = 0;
+	// Periodically add download buttons every 5 seconds
+	setInterval(() => {
+		appendDownloadButtons();
+	}, 5000);
 
-		const onKeyUp = e => {
-			combinationMemory = combinationMemory.filter(item => item !== e.code);
-			emptyTimeout = setTimeout(() => {
-				combinationMemory = [];
-			}, 500);
-		}
-		const onKeyDown = e => {
-			clearTimeout(emptyTimeout);
-			if (!combinationMemory.includes(e.code)) {
-				combinationMemory.push(e.code);
-			}
-			if (combination.every((item, index) => item === combinationMemory[index])) {
-				if (once) {
-					element.removeEventListener("keydown", onKeyDown);
-					element.removeEventListener("keyup", onKeyUp);
+	async function appendDownloadButtons() {
+		Array.from(document.querySelectorAll("*:not(img)")).forEach(element => {
+			if (element.offsetParent) {
+				let computedStyle = getComputedStyle(element);
+				let match = computedStyle.backgroundImage.match(/^url\(['"](.+?)['"]\)/);
+
+				if (match && match[1]) {
+					// Check if the button already exists
+					if (!element.querySelector("[data-download-image-button]")) {
+						appendButton({
+							top: element.offsetTop,
+							left: element.offsetLeft,
+							width: element.offsetWidth,
+							height: element.offsetHeight,
+							element: element.offsetParent,
+							url: match[1],
+							fileName: getFileName(match[1])
+						});
+					}
 				}
-				callback(++count);
 			}
-		}
+		});
 
-		element.addEventListener("keyup", onKeyUp);
-		element.addEventListener("keydown", onKeyDown);
-	};
+		Array.from(document.getElementsByTagName("img")).forEach(element => {
+			if (element.offsetParent) {
+				// Check if the button already exists
+				if (!element.querySelector("[data-download-image-button]")) {
+					appendButton({
+						top: element.offsetTop,
+						left: element.offsetLeft,
+						width: element.offsetWidth,
+						height: element.offsetHeight,
+						element: element.offsetParent,
+						url: element.src,
+						fileName: getFileName(element.src)
+					});
+				}
+			}
+		});
+	}
 
 	const appendButton = ({
 		width,
@@ -143,47 +160,4 @@
 		}
 	}
 
-	listenCombination({
-		combination: ["ControlLeft", "KeyQ"],
-		callback: count => {
-			if (count % 2 === 0) {
-				Array.from(document.querySelectorAll("[data-download-image-button]")).forEach(element => element.remove());
-				return;
-			}
-
-			Array.from(document.querySelectorAll("*:not(img)")).forEach(element => {
-				if (element.offsetParent) {
-					let computedStyle = getComputedStyle(element);
-					let match = computedStyle.backgroundImage.match(/^url\(['"](.+?)['"]\)/);
-
-					if (match && match[1]) {
-						appendButton({
-							top: element.offsetTop,
-							left: element.offsetLeft,
-							width: element.offsetWidth,
-							height: element.offsetHeight,
-							element: element.offsetParent,
-							url: match[1],
-							fileName: getFileName(match[1])
-						});
-					}
-				}
-			});
-
-			Array.from(document.getElementsByTagName("img")).forEach(element => {
-				if (element.offsetParent) {
-					appendButton({
-						top: element.offsetTop,
-						left: element.offsetLeft,
-						width: element.offsetWidth,
-						height: element.offsetHeight,
-						element: element.offsetParent,
-						url: element.src,
-						fileName: getFileName(element.src)
-					});
-				}
-			});
-		},
-		once: false
-	});
 })();
