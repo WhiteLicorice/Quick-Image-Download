@@ -31,6 +31,10 @@
 
 				if (match && match[1]) {
 					// Add the class to mark it processed
+					element.addEventListener('load', () => {
+						appendDownloadButtonToImage(element);
+						element.removeEventListener('load', this); // Explicit removal
+					 });
 					element.classList.add("has-download-button");
 
 					// If needed, defer button creation or ensure conditions are met first
@@ -41,7 +45,7 @@
 		});
 
 		// For img elements that haven't been processed yet (no "has-download-button" class)
-		Array.from(document.querySelectorAll("img:not(.has-download-button)")).forEach(element => {
+		Array.from(document.querySelectorAll("img:(.has-download-button)")).forEach(element => {
 			// Skip images that already have a download button
 			if (!element.nextSibling || !element.nextSibling.hasAttribute("data-download-image-button")) {
 				// Check if the image is fully loaded
