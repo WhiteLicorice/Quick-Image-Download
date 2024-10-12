@@ -17,51 +17,64 @@
 
 	window.focus();
 
-	// Periodically add download buttons every 5 seconds
-	setInterval(() => {
-		appendDownloadButtons();
-	}, 5000);
+	// Periodically check for new images and attach event listeners every 5 seconds
+    setInterval(() => {
+        checkAndAttachLoadListeners();
+    }, 5000);
 
-	async function appendDownloadButtons() {
-		Array.from(document.querySelectorAll("*:not(img)")).forEach(element => {
+    async function checkAndAttachLoadListeners() {
+        // Select background image elements that don't have the "has-download-button" class
+        Array.from(document.querySelectorAll("*:not(img):not(.has-download-button)")).forEach(element => {
 			if (element.offsetParent) {
 				let computedStyle = getComputedStyle(element);
 				let match = computedStyle.backgroundImage.match(/^url\(['"](.+?)['"]\)/);
 
 				if (match && match[1]) {
-					// Check if the button already exists
-					if (!element.querySelector("[data-download-image-button]")) {
-						appendButton({
-							top: element.offsetTop,
-							left: element.offsetLeft,
-							width: element.offsetWidth,
-							height: element.offsetHeight,
-							element: element.offsetParent,
-							url: match[1],
-							fileName: getFileName(match[1])
-						});
-					}
+					// Add the class to mark it processed
+					element.classList.add("has-download-button");
+
+					// If needed, defer button creation or ensure conditions are met first
+					// Uncomment this if necessary, depending on load conditions
+					// appendButton({ ... });
 				}
 			}
 		});
 
-		Array.from(document.getElementsByTagName("img")).forEach(element => {
-			if (element.offsetParent) {
-				// Check if the button already exists
-				if (!element.querySelector("[data-download-image-button]")) {
-					appendButton({
-						top: element.offsetTop,
-						left: element.offsetLeft,
-						width: element.offsetWidth,
-						height: element.offsetHeight,
-						element: element.offsetParent,
-						url: element.src,
-						fileName: getFileName(element.src)
-					});
+		// For img elements that haven't been processed yet (no "has-download-button" class)
+		Array.from(document.querySelectorAll("img:not(.has-download-button)")).forEach(element => {
+			// Skip images that already have a download button
+			if (!element.nextSibling || !element.nextSibling.hasAttribute("data-download-image-button")) {
+				// Check if the image is fully loaded
+				if (!element.complete || element.naturalWidth === 0) {
+					// Attach load event listener to wait for the image to load
+					element.addEventListener('load', () => {
+						appendDownloadButtonToImage(element);
+					}, { once: true });
+				} else {
+					// Image is already loaded, append the button immediately
+					appendDownloadButtonToImage(element);
 				}
 			}
+			// Mark the image to avoid re-processing
+			element.classList.add("has-download-button");
 		});
-	}
+    }
+
+    // Function to handle appending buttons to img elements
+    function appendDownloadButtonToImage(element) {
+        if (element.offsetParent && !element.nextSibling?.hasAttribute("data-download-image-button")) {
+            appendButton({
+                top: element.offsetTop,
+                left: element.offsetLeft,
+                width: element.offsetWidth,
+                height: element.offsetHeight,
+                element: element.offsetParent,
+                url: element.src,
+                fileName: getFileName(element.src)
+            });
+        }
+    }
+
 
 	const appendButton = ({
 		width,
